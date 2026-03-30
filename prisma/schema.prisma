@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETE
+  UPLOAD_FAILED
+  FAL_FAILED
+  CANCELLED
+}
+
+enum AssetType {
+  IMAGE
+  VIDEO
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+  deletedAt DateTime?
+
+  credentials Credentials?
+  jobs        Job[]
+
+  @@map("users")
+}
+
+model Credentials {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  falApiKeyEnc  String?
+  r2AccessKeyEnc String?
+  r2SecretKeyEnc String?
+  r2Endpoint    String?
+  r2BucketName  String?
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("credentials")
+}
+
+model Job {
+  id           String    @id @default(uuid())
+  userId       String
+  status       JobStatus @default(PENDING)
+  type         AssetType
+  model        String
+  prompt       String
+  negativePrompt String?
+  seed         Int?
+  params       Json?
+  falRequestId String?
+  r2Key        String?
+  fallbackUrl  String?
+  errorMessage String?
+  parentId     String?
+  retryCount   Int       @default(0)
+  createdAt    DateTime  @default(now())
+  completedAt  DateTime?
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent       Job?          @relation("JobLineage", fields: [parentId], references: [id])
+  children     Job[]         @relation("JobLineage")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, type])
+  @@index([userId, model])
+  @@index([userId, status])
+  @@index([falRequestId])
+  @@map("jobs")
+}

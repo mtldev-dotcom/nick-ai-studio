@@ -1,65 +1,36 @@
-import Image from "next/image";
+import { redirect } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
 
-export default function Home() {
+export default async function Home() {
+  const { userId } = await auth();
+
+  if (userId) {
+    redirect("/gallery");
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen flex items-center justify-center bg-[#080808]">
+      <div className="max-w-md w-full mx-auto px-4 text-center">
+        <div className="mb-8">
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-[#00e5c9] to-[#4a9eff] bg-clip-text text-transparent font-['Rajdhani'] mb-4">
+            FalStudio
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-xl text-[#8898a5]">
+            Persistent AI Generation Workspace
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
+        <div className="mc-card mc-card-teal p-8">
+          <p className="text-[#b8cfdf] mb-6">
+            Generate stunning images and videos with Fal.ai. All assets are automatically saved to your private R2 bucket.
+          </p>
           <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/sign-in"
+            className="inline-block px-8 py-3 bg-[#00e5c9] text-[#080808] font-medium rounded-lg hover:bg-[#00e5c9]/90 transition-all"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
+            Sign In to Start
           </a>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

@@ -1,36 +1,118 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FalStudio Cloud
 
-## Getting Started
+Persistent AI Generation Workspace with R2 Storage.
 
-First, run the development server:
+Generate stunning images and videos using Fal.ai models. All assets are automatically saved to your private Cloudflare R2 bucket with full lineage tracking.
+
+## Features
+
+- **Text-to-Image**: Flux 1.0 Pro, Flux 1.0 Dev, SDXL
+- **Image-to-Video**: Stable Video Diffusion (SVD)
+- **Persistent Storage**: Auto-upload to Cloudflare R2
+- **Workflow Chaining**: Use any image as input for video generation
+- **Asset Library**: Searchable, filterable gallery with lineage tracking
+- **Secure Credentials**: AES-256 encrypted API keys
+
+## Tech Stack
+
+- Next.js 16 (App Router)
+- Prisma 5 + PostgreSQL
+- Clerk Authentication
+- Cloudflare R2 (S3-compatible)
+- Fal.ai Async API
+
+## Setup
+
+### 1. Install Dependencies
+
+```bash
+npm install
+```
+
+### 2. Configure Environment
+
+Copy `.env` and fill in your values:
+
+```bash
+# Database
+DATABASE_URL="postgresql://user:pass@localhost:5432/falstudio"
+
+# Clerk (https://clerk.com)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
+CLERK_SECRET_KEY="sk_test_..."
+
+# Encryption key for credentials (generate with: openssl rand -hex 32)
+ENCRYPTION_KEY="your-64-char-hex-key"
+
+# App URL (for webhooks)
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+```
+
+### 3. Initialize Database
+
+```bash
+npx prisma db push
+```
+
+### 4. Run Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Environment Variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key |
+| `CLERK_SECRET_KEY` | Clerk secret key |
+| `ENCRYPTION_KEY` | 64-char hex key for AES-256 encryption |
+| `FAL_WEBHOOK_SECRET` | Secret for validating Fal.ai webhook signatures |
+| `NEXT_PUBLIC_APP_URL` | Public URL for webhook callbacks |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## API Endpoints
 
-## Learn More
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/generate` | Submit a generation job |
+| GET | `/api/jobs` | List jobs with pagination/filtering |
+| GET | `/api/jobs/[jobId]` | Get job status |
+| GET | `/api/assets?jobId=X` | Get presigned R2 URL for asset |
+| GET/POST | `/api/settings` | Get/update credentials |
+| POST | `/api/webhooks/fal` | Fal.ai webhook handler |
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+src/
+├── app/
+│   ├── (dashboard)/        # Protected routes
+│   │   ├── gallery/       # Asset gallery
+│   │   ├── generate/      # Generation landing
+│   │   └── settings/     # Credential management
+│   ├── api/              # API routes
+│   │   ├── generate/     # Job submission
+│   │   ├── jobs/        # Job listing/status
+│   │   ├── assets/       # R2 presigned URLs
+│   │   ├── settings/     # Credentials
+│   │   └── webhooks/fal/ # Fal.ai callbacks
+│   └── theme.css         # Mission Control theme
+├── components/
+│   ├── ui/icons.tsx      # SVG icons
+│   ├── AssetCard.tsx     # Gallery item card
+│   ├── GalleryGrid.tsx   # Gallery with filters
+│   ├── GenerationModal.tsx
+│   └── layout/DashboardLayout.tsx
+└── lib/
+    ├── prisma.ts         # Database client
+    ├── auth.ts           # Auth helpers
+    ├── encryption.ts      # AES-256 encryption
+    ├── fal.ts            # Fal.ai API
+    ├── r2.ts             # R2 storage
+    └── fal-client.ts     # Client-side Fal models
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## License
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
