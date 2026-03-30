@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { decrypt } from "@/lib/encryption";
 import { createR2Client, getPresignedUrl } from "@/lib/r2";
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const session = await auth();
+    const userId = session?.user?.id;
     
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

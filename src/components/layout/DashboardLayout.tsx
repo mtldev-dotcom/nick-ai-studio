@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
+import { signOut, useSession } from "next-auth/react";
 
 const navItems = [
   { href: "/gallery", label: "Gallery" },
@@ -12,6 +12,7 @@ const navItems = [
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { data: session } = useSession();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -40,7 +41,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 ))}
               </nav>
             </div>
-            <UserButton />
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-[#8898a5]">{session?.user?.email}</span>
+              <button
+                onClick={() => signOut()}
+                className="px-3 py-1.5 text-sm text-[#8898a5] hover:text-[#b8cfdf] border border-white/10 rounded-md hover:border-white/20 transition-all"
+              >
+                Sign Out
+              </button>
+            </div>
           </div>
         </div>
       </header>

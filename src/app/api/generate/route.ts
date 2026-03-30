@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { submitFalJob, getModelById, GenerationParams } from "@/lib/fal";
 import { decrypt } from "@/lib/encryption";
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const session = await auth();
+    const userId = session?.user?.id;
     
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

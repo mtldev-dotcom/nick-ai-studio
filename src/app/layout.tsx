@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
+import { SessionProvider } from "next-auth/react";
+import { auth } from "@/lib/auth";
 import "./theme.css";
 
 export const metadata: Metadata = {
@@ -7,16 +8,18 @@ export const metadata: Metadata = {
   description: "Persistent AI Generation Workspace",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+
   return (
-    <ClerkProvider>
-      <html lang="en">
-        <body className="min-h-full flex flex-col">{children}</body>
-      </html>
-    </ClerkProvider>
+    <html lang="en">
+      <body className="min-h-full flex flex-col">
+        <SessionProvider session={session}>{children}</SessionProvider>
+      </body>
+    </html>
   );
 }
