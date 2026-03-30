@@ -1,0 +1,173 @@
+/* Mission Control reusable theme
+   Source: merged OpenClaw architecture visual style + Mission Control black mode
+   Usage:
+   1) Include in app/layout head: <link rel="stylesheet" href="/theme.css" />
+   2) Apply class="mc-card mc-card-teal" (or other tone) on cards
+*/
+
+@import url("https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Share+Tech+Mono&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+
+:root {
+  /* Core colors */
+  --mc-bg: #080808;
+  --mc-fg: #b8cfdf;
+  --mc-fg-strong: #d8eaf5;
+  --mc-muted: #8898a5;
+  --mc-border: rgba(255, 255, 255, 0.14);
+
+  /* Accent palette */
+  --mc-teal: #00e5c9;
+  --mc-coral: #ff5240;
+  --mc-blue: #4a9eff;
+  --mc-purple: #b06aff;
+  --mc-amber: #ffbe3c;
+  --mc-green: #3dffa0;
+  --mc-pink: #ff69b4;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: var(--mc-bg);
+  color: var(--mc-fg);
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  background-image:
+    radial-gradient(circle at 15% -10%, rgba(0, 229, 201, 0.06), transparent 35%),
+    radial-gradient(circle at 85% 120%, rgba(176, 106, 255, 0.05), transparent 35%);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "Rajdhani", "Space Grotesk", system-ui, sans-serif;
+  color: var(--mc-fg-strong);
+  letter-spacing: 0.01em;
+}
+
+code,
+pre,
+.mono,
+[data-mono="true"] {
+  font-family: "Share Tech Mono", "JetBrains Mono", monospace;
+}
+
+/* Base card */
+.mc-card {
+  border-radius: 8px;
+  border: 1px solid var(--mc-border);
+  background: linear-gradient(180deg, rgba(5, 8, 12, 0.92), rgba(2, 3, 6, 0.95));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 10px 28px rgba(0, 0, 0, 0.42);
+}
+
+/* Card tones */
+.mc-card-teal {
+  border-color: color-mix(in srgb, var(--mc-teal) 70%, #0f1d1b 30%);
+  box-shadow: inset 0 0 0 1px rgba(0, 229, 201, 0.16), 0 0 16px rgba(0, 229, 201, 0.14), 0 10px 28px rgba(0, 0, 0, 0.42);
+}
+
+.mc-card-coral {
+  border-color: color-mix(in srgb, var(--mc-coral) 70%, #261110 30%);
+  box-shadow: inset 0 0 0 1px rgba(255, 82, 64, 0.16), 0 0 16px rgba(255, 82, 64, 0.14), 0 10px 28px rgba(0, 0, 0, 0.42);
+}
+
+.mc-card-blue {
+  border-color: color-mix(in srgb, var(--mc-blue) 72%, #0e1728 28%);
+  box-shadow: inset 0 0 0 1px rgba(74, 158, 255, 0.17), 0 0 16px rgba(74, 158, 255, 0.14), 0 10px 28px rgba(0, 0, 0, 0.42);
+}
+
+.mc-card-purple {
+  border-color: color-mix(in srgb, var(--mc-purple) 74%, #1b1126 26%);
+  box-shadow: inset 0 0 0 1px rgba(176, 106, 255, 0.18), 0 0 16px rgba(176, 106, 255, 0.15), 0 10px 28px rgba(0, 0, 0, 0.42);
+}
+
+.mc-card-amber {
+  border-color: color-mix(in srgb, var(--mc-amber) 70%, #251c0e 30%);
+  box-shadow: inset 0 0 0 1px rgba(255, 190, 60, 0.16), 0 0 16px rgba(255, 190, 60, 0.14), 0 10px 28px rgba(0, 0, 0, 0.42);
+}
+
+.mc-card-green {
+  border-color: color-mix(in srgb, var(--mc-green) 70%, #0f1f1a 30%);
+  box-shadow: inset 0 0 0 1px rgba(61, 255, 160, 0.16), 0 0 16px rgba(61, 255, 160, 0.14), 0 10px 28px rgba(0, 0, 0, 0.42);
+}
+
+.mc-card-pink {
+  border-color: color-mix(in srgb, var(--mc-pink) 72%, #24111f 28%);
+  box-shadow: inset 0 0 0 1px rgba(255, 105, 180, 0.18), 0 0 16px rgba(255, 105, 180, 0.14), 0 10px 28px rgba(0, 0, 0, 0.42);
+}
+
+/* Controls */
+button,
+input,
+select,
+textarea {
+  transition: all 160ms ease;
+}
+
+button {
+  font-family: "Share Tech Mono", "JetBrains Mono", monospace;
+}
+
+button:hover {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 1px rgba(0, 229, 201, 0.6), 0 0 0 3px rgba(0, 229, 201, 0.14);
+}
+
+.mc-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(74, 158, 255, 0.4);
+  background: rgba(74, 158, 255, 0.1);
+  color: #7ec0ff;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  text-decoration: none;
+}
+
+.mc-link-btn:hover {
+  background: rgba(74, 158, 255, 0.2);
+}
+
+/* Utility */
+.mc-text-muted {
+  color: var(--mc-muted);
+}
+
+.safe-top {
+  padding-top: calc(env(safe-area-inset-top) + 0.25rem);
+}
+
+.safe-bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 0.75rem);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 229, 201, 0.45);
+}
