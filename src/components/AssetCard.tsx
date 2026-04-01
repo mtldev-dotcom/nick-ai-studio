@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Play, AlertCircle, Clock, ChevronRight, Video, Trash, Copy, Download } from "@/components/ui/icons";
+import { Play, AlertCircle, Clock, ChevronRight, Video, Trash, Copy, Download, X } from "@/components/ui/icons";
 
 interface Asset {
   id: string;
@@ -21,13 +21,15 @@ interface AssetCardProps {
   asset: Asset;
   onMakeVideo?: () => void;
   onDelete?: (id: string) => void;
+  onCancel?: (id: string) => void;
 }
 
-export function AssetCard({ asset, onMakeVideo, onDelete }: AssetCardProps) {
+export function AssetCard({ asset, onMakeVideo, onDelete, onCancel }: AssetCardProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [contextMenu, setContextMenu] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     if (asset.status === "COMPLETE" && asset.r2Key) {
@@ -81,6 +83,26 @@ export function AssetCard({ asset, onMakeVideo, onDelete }: AssetCardProps) {
       console.error("Delete failed:", error);
     } finally {
       setDeleting(false);
+      setContextMenu(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!onCancel) return;
+    setCancelling(true);
+    try {
+      const response = await fetch(`/api/jobs/${asset.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel" }),
+      });
+      if (response.ok) {
+        onCancel(asset.id);
+      }
+    } catch (error) {
+      console.error("Cancel failed:", error);
+    } finally {
+      setCancelling(false);
       setContextMenu(false);
     }
   };
@@ -160,10 +182,22 @@ export function AssetCard({ asset, onMakeVideo, onDelete }: AssetCardProps) {
           </div>
         )}
 
-        {asset.status === "COMPLETE" && (
+        {(asset.status === "COMPLETE" || asset.status === "PROCESSING" || asset.status === "PENDING") && (
           <div className={`absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-3 transition-opacity duration-300 ${isHovered ? "opacity-100" : "opacity-0"}`}>
             <div className="flex gap-2">
-              {asset.type === "IMAGE" && onMakeVideo && (
+              {(asset.status === "PROCESSING" || asset.status === "PENDING") && onCancel && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCancel();
+                  }}
+                  disabled={cancelling}
+                  className="px-3 py-1.5 bg-[#ff5240]/80 rounded-md text-xs text-white hover:bg-[#ff5240] transition-colors flex items-center gap-1 disabled:opacity-50"
+                >
+                  <X className="w-3 h-3" /> {cancelling ? "Cancelling..." : "Cancel"}
+                </button>
+              )}
+              {asset.status === "COMPLETE" && asset.type === "IMAGE" && onMakeVideo && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -174,7 +208,7 @@ export function AssetCard({ asset, onMakeVideo, onDelete }: AssetCardProps) {
                   <Video className="w-3 h-3" /> Make Video
                 </button>
               )}
-              {imageUrl && (
+              {asset.status === "COMPLETE" && imageUrl && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -212,6 +246,15 @@ export function AssetCard({ asset, onMakeVideo, onDelete }: AssetCardProps) {
             >
               <Copy className="w-4 h-4" /> Copy prompt
             </button>
+            {(asset.status === "PROCESSING" || asset.status === "PENDING") && onCancel && (
+              <button
+                className="w-full px-3 py-2 text-left text-sm text-[#ff5240] hover:bg-white/10 rounded transition-colors flex items-center gap-2 disabled:opacity-50"
+                onClick={handleCancel}
+                disabled={cancelling}
+              >
+                <X className="w-4 h-4" /> {cancelling ? "Cancelling..." : "Cancel Job"}
+              </button>
+            )}
             {asset.type === "IMAGE" && onMakeVideo && (
               <button
                 className="w-full px-3 py-2 text-left text-sm text-[#b06aff] hover:bg-white/10 rounded transition-colors flex items-center gap-2"

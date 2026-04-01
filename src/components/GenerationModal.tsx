@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { X, Wand, Loader, Image, Video, Check } from "@/components/ui/icons";
+import { X, Wand, Loader, Image, Video, Check, Upload } from "@/components/ui/icons";
 import { getModelsByTypeClient, getModelByIdClient, type FalModelConfigClient } from "@/lib/fal-client";
 
 interface GenerationModalProps {
@@ -24,6 +24,9 @@ export function GenerationModal({ onClose, parentAsset }: GenerationModalProps) 
   const [seed, setSeed] = useState<number | undefined>(undefined);
   const [jobId, setJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const models = getModelsByTypeClient(assetType);
   const categories = [...new Set(models.map((m) => m.category))];
@@ -69,9 +72,98 @@ export function GenerationModal({ onClose, parentAsset }: GenerationModalProps) 
     }
   }, [step, jobId]);
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingImage(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/assets/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Upload failed");
+      }
+
+      setImageUrls((prev) => [...prev, data.url]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImageUrls((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadFile = useCallback(async (file: File) => {
+    setIsUploadingImage(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/assets/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Upload failed");
+      }
+
+      setImageUrls((prev) => [...prev, data.url]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setIsUploadingImage(false);
+    }
+  }, []);
+
+  // Handle paste events for clipboard images
+  useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith("image/")) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) {
+            await uploadFile(file);
+          }
+          break;
+        }
+      }
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, [uploadFile]);
+
   const handleGenerate = async () => {
     if (!prompt.trim()) {
       setError("Prompt is required");
+      return;
+    }
+
+    const isImageEditModel = selectedModelInfo?.category === "Image Edit";
+    if (isImageEditModel && imageUrls.length === 0) {
+      setError("At least one image is required for image editing");
       return;
     }
 
@@ -79,16 +171,22 @@ export function GenerationModal({ onClose, parentAsset }: GenerationModalProps) 
     setError(null);
 
     try {
+      const requestBody: Record<string, unknown> = {
+        model: selectedModel,
+        prompt,
+        negativePrompt: negativePrompt || undefined,
+        seed,
+        parentId: parentAsset?.id,
+      };
+
+      if (isImageEditModel && imageUrls.length > 0) {
+        requestBody.imageUrls = imageUrls;
+      }
+
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: selectedModel,
-          prompt,
-          negativePrompt: negativePrompt || undefined,
-          seed,
-          parentId: parentAsset?.id,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();
@@ -266,6 +364,63 @@ export function GenerationModal({ onClose, parentAsset }: GenerationModalProps) 
                     className="w-full px-4 py-3 bg-[#050508] border border-white/10 rounded-lg text-[#b8cfdf] placeholder-[#8898a5] focus:outline-none focus:border-[#00e5c9]/50"
                   />
                 </div>
+
+                {/* Image Upload for Image Edit models */}
+                {selectedModelInfo?.category === "Image Edit" && (
+                  <div>
+                    <label className="block text-sm font-medium text-[#b8cfdf] mb-2">
+                      Input Images <span className="text-[#ff5240]">*</span>
+                    </label>
+                    <div className="space-y-3">
+                      {imageUrls.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {imageUrls.map((url, index) => (
+                            <div key={index} className="relative group">
+                              <img
+                                src={url}
+                                alt={`Input ${index + 1}`}
+                                className="w-20 h-20 object-cover rounded-lg border border-white/10"
+                              />
+                              <button
+                                onClick={() => removeImage(index)}
+                                className="absolute -top-2 -right-2 w-5 h-5 bg-[#ff5240] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X className="w-3 h-3 text-white" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploadingImage}
+                        className="w-full p-4 border-2 border-dashed border-white/20 rounded-lg text-[#8898a5] hover:border-[#00e5c9]/50 hover:text-[#00e5c9] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {isUploadingImage ? (
+                          <>
+                            <Loader className="w-5 h-5" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-5 h-5" />
+                            Upload Image
+                          </>
+                        )}
+                      </button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                      <p className="text-xs text-[#8898a5]">
+                        Upload or paste images (Ctrl+V / Cmd+V) to edit. Supported formats: JPG, PNG, WebP
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {error && (

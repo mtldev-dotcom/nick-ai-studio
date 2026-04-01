@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { model, prompt, negativePrompt, seed, params, parentId } = validation.data;
+    const { model, prompt, negativePrompt, seed, params, parentId, imageUrls } = validation.data;
 
     const modelConfig = getModelById(model);
     if (!modelConfig) {
@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
       ...(negativePrompt && { negativePrompt }),
       ...(seed && { seed }),
       ...((params || {}) as Partial<GenerationParams>),
+      ...(imageUrls && imageUrls.length > 0 && { imageUrls }),
     };
 
     if (parentId) {

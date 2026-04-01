@@ -100,6 +100,15 @@ export function GalleryGrid() {
     showToast("Asset deleted successfully", "success");
   };
 
+  const handleCancel = (id: string) => {
+    setAssets((prev) =>
+      prev.map((asset) =>
+        asset.id === id ? { ...asset, status: "CANCELLED" } : asset
+      )
+    );
+    showToast("Job cancelled successfully", "success");
+  };
+
   if (loading) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -174,6 +183,7 @@ export function GalleryGrid() {
                   asset={asset}
                   onMakeVideo={asset.type === "IMAGE" && asset.status === "COMPLETE" ? () => handleMakeVideo(asset) : undefined}
                   onDelete={handleDelete}
+                  onCancel={handleCancel}
                 />
               ))}
             </AnimatePresence>

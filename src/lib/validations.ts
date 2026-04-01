@@ -8,6 +8,7 @@ export const generateJobSchema = z.object({
   seed: z.number().int().min(0).max(2147483647).optional(),
   params: z.record(z.string(), z.unknown()).optional(),
   parentId: z.string().uuid().optional(),
+  imageUrls: z.array(z.string().url("Invalid image URL")).optional(),
 });
 
 export const jobIdSchema = z.object({

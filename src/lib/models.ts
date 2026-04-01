@@ -225,6 +225,18 @@ export const FAL_MODELS: FalModelConfig[] = [
     supportedParams: ["image_url", "scale"],
     pricing: "$0.01/image",
   },
+
+  // === IMAGE EDITING MODELS ===
+  {
+    id: "fal-ai/flux-2-pro/edit",
+    name: "Flux 2 Pro Edit",
+    type: "IMAGE",
+    category: "Image Edit",
+    description: "Edit images using text prompts with FLUX.2 Pro model",
+    defaultParams: { image_size: "auto", safety_tolerance: "2", enable_safety_checker: true, output_format: "jpeg" },
+    supportedParams: ["prompt", "image_urls", "image_size", "seed", "safety_tolerance", "enable_safety_checker", "output_format"],
+    pricing: "$0.05/image",
+  },
 ];
 
 export function getModelById(modelId: string): FalModelConfig | undefined {

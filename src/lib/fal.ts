@@ -14,6 +14,7 @@ export interface GenerationParams {
   aspectRatio?: string;
   firstFrameImage?: string;
   motionMagnitude?: number;
+  imageUrls?: string[];
   [key: string]: unknown;
 }
 
@@ -56,10 +57,11 @@ export async function submitFalJob(
   if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
   if (params.firstFrameImage) input.first_frame_image = params.firstFrameImage;
   if (params.motionMagnitude !== undefined) input.motion_magnitude = params.motionMagnitude;
+  if (params.imageUrls && params.imageUrls.length > 0) input.image_urls = params.imageUrls;
 
   // Add any additional params
   for (const [key, value] of Object.entries(params)) {
-    if (!["prompt", "negativePrompt", "seed", "guidanceScale", "numInferenceSteps", "aspectRatio", "firstFrameImage", "motionMagnitude"].includes(key)) {
+    if (!["prompt", "negativePrompt", "seed", "guidanceScale", "numInferenceSteps", "aspectRatio", "firstFrameImage", "motionMagnitude", "imageUrls"].includes(key)) {
       input[key] = value;
     }
   }
@@ -113,25 +115,45 @@ export async function getFalJobStatus(
 }
 
 /**
- * Get the result of a completed job
+ * Get the result of a completed job with retry logic
  */
 export async function getFalJobResult(
   apiKey: string,
   modelId: string,
-  requestId: string
+  requestId: string,
+  maxRetries: number = 3,
+  retryDelay: number = 2000
 ): Promise<Record<string, unknown>> {
   configureFalClient(apiKey);
 
-  try {
-    const result = await fal.queue.result(modelId, {
-      requestId,
-    });
+  let lastError: Error | null = null;
 
-    return result.data as Record<string, unknown>;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    throw new Error(`Fal.ai result fetch failed: ${message}`);
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const result = await fal.queue.result(modelId, {
+        requestId,
+      });
+
+      return result.data as Record<string, unknown>;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("Unknown error");
+      
+      // If it's a "Not Found" error and we have retries left, wait and retry
+      if (lastError.message.includes("Not Found") && attempt < maxRetries - 1) {
+        console.log(`Fal.ai result not ready yet, retrying in ${retryDelay}ms... (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        // Exponential backoff
+        retryDelay *= 1.5;
+        continue;
+      }
+      
+      // For other errors or final attempt, throw immediately
+      throw new Error(`Fal.ai result fetch failed: ${lastError.message}`);
+    }
   }
+
+  // This should never be reached, but just in case
+  throw new Error(`Fal.ai result fetch failed after ${maxRetries} attempts: ${lastError?.message || "Unknown error"}`);
 }
 
 /**
