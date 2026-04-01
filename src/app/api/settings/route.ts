@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { encrypt, decrypt, maskSecret } from "@/lib/encryption";
 import { validateR2Credentials } from "@/lib/r2";
 import { validateFalApiKey } from "@/lib/fal";
+import { settingsSchema } from "@/lib/validations";
 
 export async function GET() {
   try {
@@ -52,7 +53,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { falApiKey, r2AccessKey, r2SecretKey, r2Endpoint, r2BucketName } = body;
+    
+    // Validate input
+    const validation = settingsSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: "Invalid input", details: validation.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+
+    const { falApiKey, r2AccessKey, r2SecretKey, r2Endpoint, r2BucketName } = validation.data;
 
     if (r2AccessKey && r2SecretKey && r2Endpoint && r2BucketName) {
       const isValidR2 = await validateR2Credentials({

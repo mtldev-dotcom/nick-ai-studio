@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Play, AlertCircle, Clock, ChevronRight, Video } from "@/components/ui/icons";
+import { Play, AlertCircle, Clock, ChevronRight, Video, Trash, Copy, Download } from "@/components/ui/icons";
 
 interface Asset {
   id: string;
@@ -20,12 +20,14 @@ interface Asset {
 interface AssetCardProps {
   asset: Asset;
   onMakeVideo?: () => void;
+  onDelete?: (id: string) => void;
 }
 
-export function AssetCard({ asset, onMakeVideo }: AssetCardProps) {
+export function AssetCard({ asset, onMakeVideo, onDelete }: AssetCardProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [contextMenu, setContextMenu] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (asset.status === "COMPLETE" && asset.r2Key) {
@@ -63,6 +65,40 @@ export function AssetCard({ asset, onMakeVideo }: AssetCardProps) {
       default:
         return null;
     }
+  };
+
+  const handleDelete = async () => {
+    if (!onDelete) return;
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/jobs/${asset.id}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        onDelete(asset.id);
+      }
+    } catch (error) {
+      console.error("Delete failed:", error);
+    } finally {
+      setDeleting(false);
+      setContextMenu(false);
+    }
+  };
+
+  const handleCopyPrompt = () => {
+    navigator.clipboard.writeText(asset.prompt);
+    setContextMenu(false);
+  };
+
+  const handleDownload = async () => {
+    if (!imageUrl) return;
+    const link = document.createElement("a");
+    link.href = imageUrl;
+    link.download = `${asset.id}.${asset.type === "VIDEO" ? "mp4" : "png"}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setContextMenu(false);
   };
 
   return (
@@ -138,6 +174,17 @@ export function AssetCard({ asset, onMakeVideo }: AssetCardProps) {
                   <Video className="w-3 h-3" /> Make Video
                 </button>
               )}
+              {imageUrl && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownload();
+                  }}
+                  className="px-3 py-1.5 bg-[#00e5c9]/80 rounded-md text-xs text-white hover:bg-[#00e5c9] transition-colors flex items-center gap-1"
+                >
+                  <Download className="w-3 h-3" /> Download
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -149,44 +196,58 @@ export function AssetCard({ asset, onMakeVideo }: AssetCardProps) {
       </div>
 
       {contextMenu && (
-        <div
-          className="fixed z-50 mc-card mc-card-purple p-2 min-w-[160px]"
-          style={{ top: "50%", left: "50%" }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            className="w-full px-3 py-2 text-left text-sm text-[#b8cfdf] hover:bg-white/10 rounded transition-colors"
-            onClick={() => {
-              navigator.clipboard.writeText(asset.prompt);
-              setContextMenu(false);
-            }}
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setContextMenu(false)}
+          />
+          <div
+            className="fixed z-50 mc-card mc-card-purple p-2 min-w-[160px]"
+            style={{ top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
+            onClick={(e) => e.stopPropagation()}
           >
-            Copy prompt
-          </button>
-          {asset.type === "IMAGE" && onMakeVideo && (
             <button
-              className="w-full px-3 py-2 text-left text-sm text-[#b06aff] hover:bg-white/10 rounded transition-colors flex items-center gap-2"
-              onClick={() => {
-                onMakeVideo();
-                setContextMenu(false);
-              }}
+              className="w-full px-3 py-2 text-left text-sm text-[#b8cfdf] hover:bg-white/10 rounded transition-colors flex items-center gap-2"
+              onClick={handleCopyPrompt}
             >
-              <Video className="w-4 h-4" /> Make Video
+              <Copy className="w-4 h-4" /> Copy prompt
             </button>
-          )}
-          <button
-            className="w-full px-3 py-2 text-left text-sm text-[#ff5240] hover:bg-white/10 rounded transition-colors"
-            onClick={() => setContextMenu(false)}
-          >
-            Delete
-          </button>
-          <button
-            className="w-full px-3 py-2 text-left text-sm text-[#8898a5] hover:bg-white/10 rounded transition-colors"
-            onClick={() => setContextMenu(false)}
-          >
-            Cancel
-          </button>
-        </div>
+            {asset.type === "IMAGE" && onMakeVideo && (
+              <button
+                className="w-full px-3 py-2 text-left text-sm text-[#b06aff] hover:bg-white/10 rounded transition-colors flex items-center gap-2"
+                onClick={() => {
+                  onMakeVideo();
+                  setContextMenu(false);
+                }}
+              >
+                <Video className="w-4 h-4" /> Make Video
+              </button>
+            )}
+            {imageUrl && (
+              <button
+                className="w-full px-3 py-2 text-left text-sm text-[#00e5c9] hover:bg-white/10 rounded transition-colors flex items-center gap-2"
+                onClick={handleDownload}
+              >
+                <Download className="w-4 h-4" /> Download
+              </button>
+            )}
+            {onDelete && (
+              <button
+                className="w-full px-3 py-2 text-left text-sm text-[#ff5240] hover:bg-white/10 rounded transition-colors flex items-center gap-2 disabled:opacity-50"
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                <Trash className="w-4 h-4" /> {deleting ? "Deleting..." : "Delete"}
+              </button>
+            )}
+            <button
+              className="w-full px-3 py-2 text-left text-sm text-[#8898a5] hover:bg-white/10 rounded transition-colors"
+              onClick={() => setContextMenu(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </>
       )}
     </motion.div>
   );

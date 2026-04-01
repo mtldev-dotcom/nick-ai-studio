@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MagnifyingGlass, Image, Video, Filter, X } from "@/components/ui/icons";
+import { MagnifyingGlass, Image, Video } from "@/components/ui/icons";
 import { AssetCard } from "./AssetCard";
 import { GenerationModal } from "./GenerationModal";
 
@@ -34,6 +34,12 @@ export function GalleryGrid() {
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [selectedParent, setSelectedParent] = useState<Asset | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "error") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const fetchAssets = useCallback(async (reset = false) => {
     if (reset) {
@@ -50,12 +56,22 @@ export function GalleryGrid() {
       if (search.length >= 3) params.set("search", search);
 
       const response = await fetch(`/api/jobs?${params.toString()}`);
+      
+      if (!response.ok) {
+        if (reset) {
+          setAssets([]);
+        }
+        setCursor(null);
+        setHasMore(false);
+        return;
+      }
+
       const data: JobsResponse = await response.json();
 
       if (reset) {
-        setAssets(data.items);
+        setAssets(data.items ?? []);
       } else {
-        setAssets((prev) => [...prev, ...data.items]);
+        setAssets((prev) => [...prev, ...(data.items ?? [])]);
       }
       setCursor(data.nextCursor);
       setHasMore(!!data.nextCursor);
@@ -77,6 +93,11 @@ export function GalleryGrid() {
   const handleMakeVideo = (asset: Asset) => {
     setSelectedParent(asset);
     setShowModal(true);
+  };
+
+  const handleDelete = (id: string) => {
+    setAssets((prev) => prev.filter((asset) => asset.id !== id));
+    showToast("Asset deleted successfully", "success");
   };
 
   if (loading) {
@@ -133,7 +154,7 @@ export function GalleryGrid() {
         </div>
       </div>
 
-      {assets.length === 0 ? (
+      {(!assets || assets.length === 0) ? (
         <div className="mc-card mc-card-teal p-12 text-center">
           <p className="text-[#8898a5] mb-4">No assets yet. Start generating!</p>
           <button
@@ -152,6 +173,7 @@ export function GalleryGrid() {
                   key={asset.id}
                   asset={asset}
                   onMakeVideo={asset.type === "IMAGE" && asset.status === "COMPLETE" ? () => handleMakeVideo(asset) : undefined}
+                  onDelete={handleDelete}
                 />
               ))}
             </AnimatePresence>
@@ -179,6 +201,24 @@ export function GalleryGrid() {
             }}
             parentAsset={selectedParent}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Toast notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-lg border ${
+              toast.type === "success"
+                ? "bg-[#00e5c9]/20 border-[#00e5c9]/30 text-[#00e5c9]"
+                : "bg-[#ff5240]/20 border-[#ff5240]/30 text-[#ff5240]"
+            }`}
+          >
+            {toast.message}
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

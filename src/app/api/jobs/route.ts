@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import type { Job } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,7 +20,6 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = {
       userId,
-      deletedAt: null,
     };
 
     if (type) {
@@ -40,26 +38,27 @@ export async function GET(request: NextRequest) {
       where,
       orderBy: { createdAt: "desc" },
       take: limit + 1,
+      select: {
+        id: true,
+        status: true,
+        type: true,
+        model: true,
+        prompt: true,
+        r2Key: true,
+        parentId: true,
+        errorMessage: true,
+        createdAt: true,
+        completedAt: true,
+      },
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
     });
 
     const hasMore = jobs.length > limit;
     const items = hasMore ? jobs.slice(0, -1) : jobs;
-    const nextCursor = hasMore ? items[items.length - 1]?.id : null;
+    const nextCursor = hasMore ? (items.length > 0 ? items[items.length - 1].id : null) : null;
 
     return NextResponse.json({
-      items: items.map((job: Job) => ({
-        id: job.id,
-        status: job.status,
-        type: job.type,
-        model: job.model,
-        prompt: job.prompt,
-        r2Key: job.r2Key,
-        parentId: job.parentId,
-        errorMessage: job.errorMessage,
-        createdAt: job.createdAt,
-        completedAt: job.completedAt,
-      })),
+      items,
       nextCursor,
     });
   } catch (error) {

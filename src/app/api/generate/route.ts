@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { submitFalJob, getModelById, GenerationParams } from "@/lib/fal";
+import { submitFalJob, getModelById, type GenerationParams } from "@/lib/fal";
 import { decrypt } from "@/lib/encryption";
+import { generateJobSchema } from "@/lib/validations";
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,7 +15,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { model, prompt, negativePrompt, seed, params, parentId } = body;
+    
+    // Validate input
+    const validation = generateJobSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: "Invalid input", details: validation.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+
+    const { model, prompt, negativePrompt, seed, params, parentId } = validation.data;
 
     const modelConfig = getModelById(model);
     if (!modelConfig) {
@@ -40,7 +51,7 @@ export async function POST(request: NextRequest) {
         prompt,
         negativePrompt,
         seed,
-        params: params || {},
+        params: (params || {}) as any,
         status: "PROCESSING",
         parentId,
       },

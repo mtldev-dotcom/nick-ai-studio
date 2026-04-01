@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, Wand, Loader, Image, Video, Check } from "@/components/ui/icons";
-import { getModelsByTypeClient } from "@/lib/fal-client";
+import { getModelsByTypeClient, getModelByIdClient, type FalModelConfigClient } from "@/lib/fal-client";
 
 interface GenerationModalProps {
   onClose: () => void;
@@ -18,18 +18,33 @@ export function GenerationModal({ onClose, parentAsset }: GenerationModalProps) 
   const [step, setStep] = useState<"configure" | "generating" | "complete">("configure");
   const [assetType, setAssetType] = useState<"IMAGE" | "VIDEO">(parentAsset ? "VIDEO" : "IMAGE");
   const [selectedModel, setSelectedModel] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [prompt, setPrompt] = useState(parentAsset?.prompt || "");
   const [negativePrompt, setNegativePrompt] = useState("");
   const [seed, setSeed] = useState<number | undefined>(undefined);
   const [jobId, setJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const models = getModelsByTypeClient(assetType);
+  const categories = [...new Set(models.map((m) => m.category))];
+
+  // Filter models by selected category
+  const filteredModels = selectedCategory
+    ? models.filter((m) => m.category === selectedCategory)
+    : models;
+
   useEffect(() => {
-    const models = getModelsByTypeClient(assetType);
-    if (models.length > 0 && !selectedModel) {
-      setSelectedModel(models[0].id);
+    // Reset category and model when type changes
+    setSelectedCategory("");
+    setSelectedModel("");
+  }, [assetType]);
+
+  useEffect(() => {
+    // Auto-select first model when category changes
+    if (filteredModels.length > 0 && !selectedModel) {
+      setSelectedModel(filteredModels[0].id);
     }
-  }, [assetType, selectedModel]);
+  }, [filteredModels, selectedModel]);
 
   useEffect(() => {
     if (step === "generating" && jobId) {
@@ -89,6 +104,8 @@ export function GenerationModal({ onClose, parentAsset }: GenerationModalProps) 
     }
   };
 
+  const selectedModelInfo = getModelByIdClient(selectedModel);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -129,6 +146,7 @@ export function GenerationModal({ onClose, parentAsset }: GenerationModalProps) 
           {step === "configure" && (
             <>
               <div className="space-y-4">
+                {/* Asset Type Selection */}
                 <div>
                   <label className="block text-sm font-medium text-[#b8cfdf] mb-2">
                     Asset Type
@@ -159,6 +177,32 @@ export function GenerationModal({ onClose, parentAsset }: GenerationModalProps) 
                   </div>
                 </div>
 
+                {/* Category Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-[#b8cfdf] mb-2">
+                    Category
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {categories.map((category) => (
+                      <button
+                        key={category}
+                        onClick={() => {
+                          setSelectedCategory(category);
+                          setSelectedModel("");
+                        }}
+                        className={`px-3 py-1.5 rounded-md text-sm transition-all ${
+                          selectedCategory === category
+                            ? "bg-[#00e5c9]/20 text-[#00e5c9] border border-[#00e5c9]/30"
+                            : "text-[#8898a5] hover:text-[#b8cfdf] border border-white/10 hover:border-white/20"
+                        }`}
+                      >
+                        {category}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Model Selection */}
                 <div>
                   <label className="block text-sm font-medium text-[#b8cfdf] mb-2">
                     Model
@@ -168,14 +212,20 @@ export function GenerationModal({ onClose, parentAsset }: GenerationModalProps) 
                     onChange={(e) => setSelectedModel(e.target.value)}
                     className="w-full px-4 py-3 bg-[#050508] border border-white/10 rounded-lg text-[#b8cfdf] focus:outline-none focus:border-[#00e5c9]/50"
                   >
-                    {getModelsByTypeClient(assetType).map((model) => (
+                    {filteredModels.map((model) => (
                       <option key={model.id} value={model.id}>
-                        {model.name}
+                        {model.name} {model.pricing ? `(${model.pricing})` : ""}
                       </option>
                     ))}
                   </select>
+                  {selectedModelInfo && (
+                    <p className="text-xs text-[#8898a5] mt-2">
+                      {selectedModelInfo.description}
+                    </p>
+                  )}
                 </div>
 
+                {/* Prompt */}
                 <div>
                   <label className="block text-sm font-medium text-[#b8cfdf] mb-2">
                     Prompt
@@ -189,6 +239,7 @@ export function GenerationModal({ onClose, parentAsset }: GenerationModalProps) 
                   />
                 </div>
 
+                {/* Negative Prompt */}
                 <div>
                   <label className="block text-sm font-medium text-[#b8cfdf] mb-2">
                     Negative Prompt (optional)
@@ -202,6 +253,7 @@ export function GenerationModal({ onClose, parentAsset }: GenerationModalProps) 
                   />
                 </div>
 
+                {/* Seed */}
                 <div>
                   <label className="block text-sm font-medium text-[#b8cfdf] mb-2">
                     Seed (optional)

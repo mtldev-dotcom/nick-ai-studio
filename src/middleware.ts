@@ -16,7 +16,10 @@ export default async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith(path)
   );
 
-  if ((isProtectedPath || isApiProtectedPath) && !isAuthenticated) {
+  // Webhook endpoints should be public (no auth required)
+  const isWebhookPath = request.nextUrl.pathname.startsWith("/api/webhooks");
+
+  if (!isWebhookPath && (isProtectedPath || isApiProtectedPath) && !isAuthenticated) {
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }
 
@@ -25,6 +28,6 @@ export default async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/((?!_next|static|favicon.ico|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
   ],
 };
