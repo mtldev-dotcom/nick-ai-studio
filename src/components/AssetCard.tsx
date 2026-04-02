@@ -249,7 +249,7 @@ export function AssetCard({ asset, onUseAsInput, onMakeVideo, onDelete, onCancel
                 <Download className="w-3 h-3" />
               </ActionButton>
             )}
-            {(isFailed || isCancelled) && onDelete && (
+            {onDelete && (
               <ActionButton onClick={(e) => { e.stopPropagation(); handleDelete(); }} disabled={deleting} color="red">
                 <Trash className="w-3 h-3" />{deleting ? "…" : "Delete"}
               </ActionButton>
