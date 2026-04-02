@@ -26,8 +26,8 @@ const securityHeaders = [
       "img-src 'self' data: blob: https://*.fal.media https://*.fal.run https://*.r2.cloudflarestorage.com https://*.r2.dev https://*.cloudflare.com",
       // Video/media same as images
       "media-src 'self' blob: https://*.fal.media https://*.fal.run https://*.r2.cloudflarestorage.com https://*.r2.dev https://*.cloudflare.com",
-      // API calls: self + fal.ai endpoints
-      "connect-src 'self' https://queue.fal.run https://fal.run https://api.fal.ai https://*.fal.media https://*.fal.run wss://*.fal.run",
+      // API calls: self + fal.ai endpoints + R2 (for blob download fetch)
+      "connect-src 'self' https://queue.fal.run https://fal.run https://api.fal.ai https://*.fal.media https://*.fal.run wss://*.fal.run https://*.r2.cloudflarestorage.com https://*.r2.dev",
       "worker-src 'self' blob:",
       "frame-ancestors 'none'",
     ].join("; "),
