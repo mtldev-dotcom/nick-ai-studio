@@ -126,9 +126,9 @@ export function AssetCard({ asset, onUseAsInput, onMakeVideo, onDelete, onCancel
   }
 
   async function handleDownload() {
-    if (!imageUrl) return;
     try {
-      const res = await fetch(imageUrl);
+      const res = await fetch(`/api/assets/download?jobId=${asset.id}`);
+      if (!res.ok) throw new Error("Download failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
