@@ -131,9 +131,10 @@ export function AssetCard({ asset, onUseAsInput, onMakeVideo, onDelete, onCancel
     setContextMenu(false);
   }
 
-  const isPending = asset.status === "PENDING" || asset.status === "PROCESSING";
-  const isFailed  = asset.status === "FAL_FAILED" || asset.status === "UPLOAD_FAILED";
-  const isComplete = asset.status === "COMPLETE";
+  const isPending   = asset.status === "PENDING" || asset.status === "PROCESSING";
+  const isFailed    = asset.status === "FAL_FAILED" || asset.status === "UPLOAD_FAILED";
+  const isCancelled = asset.status === "CANCELLED";
+  const isComplete  = asset.status === "COMPLETE";
 
   function StatusIcon() {
     if (isPending) return <Clock className="w-3.5 h-3.5 animate-spin" />;
@@ -180,6 +181,11 @@ export function AssetCard({ asset, onUseAsInput, onMakeVideo, onDelete, onCancel
               <p className="text-[10px] text-[#ff5240]/70 text-center line-clamp-2">{asset.errorMessage}</p>
             )}
           </div>
+        ) : isCancelled ? (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-2 px-3">
+            <X className="w-8 h-8 text-[#8898a5]/40" />
+            <p className="text-[10px] text-[#8898a5]/50 text-center">Cancelled</p>
+          </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <div className="w-8 h-8 rounded-full border-2 border-[#4a9eff]/30 border-t-[#4a9eff] animate-spin" />
@@ -224,6 +230,11 @@ export function AssetCard({ asset, onUseAsInput, onMakeVideo, onDelete, onCancel
           {isComplete && imageUrl && (
             <ActionButton onClick={(e) => { e.stopPropagation(); handleDownload(); }} color="teal">
               <Download className="w-3 h-3" />
+            </ActionButton>
+          )}
+          {(isFailed || isCancelled) && onDelete && (
+            <ActionButton onClick={(e) => { e.stopPropagation(); handleDelete(); }} disabled={deleting} color="red">
+              <Trash className="w-3 h-3" />{deleting ? "…" : "Delete"}
             </ActionButton>
           )}
         </div>

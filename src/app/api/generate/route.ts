@@ -57,8 +57,8 @@ export async function POST(request: NextRequest) {
     };
 
     // For image-to-video via parentId: resolve parent image to a presigned URL
-    // and inject as first_frame_image (unless already provided in params)
-    if (parentId && !falParams.first_frame_image) {
+    // and inject as image_url (unless already provided in params)
+    if (parentId && !falParams.image_url) {
       const parentJob = await prisma.job.findUnique({ where: { id: parentId } });
       if (parentJob?.r2Key && credentials.r2AccessKeyEnc && credentials.r2SecretKeyEnc) {
         try {
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
           };
           const { createR2Client, getPresignedUrl } = await import("@/lib/r2");
           const r2Client = createR2Client(r2Config);
-          falParams.first_frame_image = await getPresignedUrl(
+          falParams.image_url = await getPresignedUrl(
             r2Client,
             r2Config.bucketName,
             parentJob.r2Key,

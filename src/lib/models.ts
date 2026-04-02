@@ -229,8 +229,8 @@ const VIDEO_CFG: ModelParam = {
 };
 
 const FIRST_FRAME_IMAGE: ModelParam = {
-  key: "first_frame_image",
-  label: "First Frame Image",
+  key: "image_url",
+  label: "Input Image",
   type: "image-upload",
   required: true,
   description: "Image to animate into video.",
