@@ -1,27 +1,29 @@
-# FalStudio - AI Generation Workspace
+# FalStudio — AI Generation Workspace
 
-A production-ready frontend UI for [Fal.ai](https://fal.ai) that enables AI-powered image and video generation with persistent storage via Cloudflare R2.
+A self-hosted frontend for [Fal.ai](https://fal.ai) — generate images, videos, audio, and more using 80+ models, with everything saved permanently to your own Cloudflare R2 bucket.
 
 ## Features
 
-- **20+ AI Models** - Flux, Recraft, Ideogram, Stable Diffusion, Kling, Luma, and more
-- **Persistent Storage** - All generated assets saved to your private Cloudflare R2 bucket
-- **Image-to-Video** - Transform images into videos using Stable Video Diffusion
-- **Secure Credentials** - AES-256-GCM encryption for API keys
-- **Real-time Updates** - Webhook-based job status notifications
-- **Modern UI** - Dark theme with smooth animations via Framer Motion
+- **80+ AI Models** — Text→Image, Image→Image, Text→Video, Image→Video, Upscale, Edit, Audio, Music
+- **Dynamic Forms** — Every model gets the right controls: sliders, aspect ratio pickers, toggles, image inputs
+- **Asset Reuse** — Pick any previously generated image as input for a new generation
+- **Mobile-First** — Bottom navigation, touch-friendly, safe-area aware
+- **Persistent Storage** — All assets saved to your private Cloudflare R2 bucket
+- **Secure Credentials** — AES-256-GCM encryption for all stored API keys
+- **Webhook Driven** — Fal.ai pushes completion events; no long-polling in production
+- **Security Headers** — CSP, HSTS, X-Frame-Options, Permissions-Policy on all routes
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| Framework | Next.js 16.2.1 (App Router) |
+| Framework | Next.js 16.2.1 (App Router, Turbopack) |
 | UI | React 19, Tailwind CSS v4, Framer Motion |
 | Auth | next-auth v5 (credentials provider) |
-| Database | PostgreSQL via Prisma |
-| Storage | Cloudflare R2 via AWS S3 SDK |
-| Queue | Fal.ai Queue API with webhooks |
-| Validation | Zod |
+| Database | PostgreSQL via Prisma 5 |
+| Storage | Cloudflare R2 (AWS S3 SDK v3) |
+| AI | @fal-ai/client v1.9.5 (Queue API + webhooks) |
+| Validation | Zod v4 |
 
 ## Quick Start
 
@@ -29,137 +31,145 @@ A production-ready frontend UI for [Fal.ai](https://fal.ai) that enables AI-powe
 
 - Node.js 18+
 - PostgreSQL database
-- Cloudflare R2 bucket
-- Fal.ai API key
+- Cloudflare R2 bucket + API credentials
+- Fal.ai API key ([fal.ai/dashboard](https://fal.ai/dashboard))
 
-### Installation
+### Setup
 
 ```bash
-# Clone the repository
 git clone https://github.com/mtldev-dotcom/nick-ai-studio.git
 cd nick-ai-studio
-
-# Install dependencies
 npm install
 
-# Set up environment variables
+# Configure environment
 cp .env.example .env
-# Edit .env with your credentials
+# Edit .env — see Environment Variables below
 
-# Run database migrations
-npx prisma migrate deploy
+# Set up database
+npx prisma db push      # first run (no migration history)
+# or
+npx prisma migrate deploy  # subsequent deploys
 
 # Start development server
 npm run dev
 ```
 
+Then open `http://localhost:3000`, sign in with any email, and go to **Settings** to enter your Fal.ai and R2 credentials.
+
 ### Environment Variables
 
 ```env
-# Auth
-AUTH_SECRET="your-secret-key"
+# NextAuth
+AUTH_SECRET="..."              # openssl rand -base64 32
 
 # Database
-DATABASE_URL="postgresql://user:password@localhost:5432/nickstudio"
+DATABASE_URL="postgresql://user:pass@localhost:5432/falstudio"
 
-# Encryption (openssl rand -hex 32)
-ENCRYPTION_KEY="your-64-char-hex-key"
+# Encryption key for stored credentials
+ENCRYPTION_KEY="..."           # openssl rand -hex 32  (64 hex chars)
 
-# App URL
+# Public app URL — must be reachable by Fal.ai for webhooks
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
-# Fal Webhook Secret (optional)
-FAL_WEBHOOK_SECRET="your-webhook-secret"
+# Webhook secret (strongly recommended in production)
+FAL_WEBHOOK_SECRET="..."
 ```
+
+> **Webhook note:** For local development, use [ngrok](https://ngrok.com) or [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) so Fal.ai can reach your webhook endpoint.
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                      Client (Browser)                    │
-│  ┌─────────┐  ┌──────────┐  ┌─────────┐  ┌──────────┐ │
-│  │ Gallery │  │ Generate │  │ Settings│  │  Sign In │ │
-│  └────┬────┘  └────┬─────┘  └────┬────┘  └────┬─────┘ │
-└───────┼────────────┼────────────┼────────────┼─────────┘
-        │            │            │            │
-┌───────┴────────────┴────────────┴────────────┴─────────┐
-│                    Next.js API Routes                    │
-│  /api/jobs  /api/generate  /api/settings  /api/assets  │
-└───────────────────────────┬─────────────────────────────┘
-                            │
-┌───────────────────────────┴─────────────────────────────┐
-│                      Fal.ai Queue API                    │
-│         Submit → Webhook → Download → R2 Upload         │
-└───────────────────────────┬─────────────────────────────┘
-                            │
-┌───────────────────────────┴─────────────────────────────┐
-│                    Cloudflare R2 Storage                 │
-│              Persistent asset storage (S3 API)          │
-└─────────────────────────────────────────────────────────┘
+│                      Browser (React 19)                  │
+│                                                         │
+│  Gallery ─── GenerationStudio ─── Settings              │
+│    ↑               │                                    │
+│    └── useToast()  │  DynamicParamForm                  │
+│                    │  AssetPicker (Upload / Gallery)     │
+└───────────────────-│────────────────────────────────────┘
+                     │ fetch()
+┌────────────────────▼────────────────────────────────────┐
+│                 Next.js API Routes                       │
+│  /api/generate  /api/jobs  /api/assets  /api/settings   │
+│  /api/webhooks/fal  /api/health                         │
+└───────────┬─────────────────────────────┬───────────────┘
+            │ Queue submit                │ Result + upload
+┌───────────▼──────────┐    ┌────────────▼───────────────┐
+│    Fal.ai Queue API  │    │    Cloudflare R2 Storage    │
+│  Submit → Webhook →  │    │  Permanent asset storage   │
+│  → your /api/webhooks│    │  Presigned URLs (1hr TTL)  │
+└──────────────────────┘    └────────────────────────────┘
+            │
+┌───────────▼──────────┐
+│      PostgreSQL       │
+│  Users, Credentials, │
+│  Jobs (status track) │
+└──────────────────────┘
 ```
+
+### Generation Flow
+
+1. User picks a model and fills in the dynamic form
+2. POST `/api/generate` → creates a `Job` in DB, submits to Fal.ai queue
+3. Fal.ai processes the job asynchronously
+4. Fal.ai POSTs to `/api/webhooks/fal` on completion
+5. Webhook downloads the output, uploads to R2, marks job COMPLETE
+6. Gallery shows the asset via a fresh presigned R2 URL
+
+### Asset Reuse
+
+Any completed image in the gallery has a **"Use as Input"** button → navigates to `/generate?inputImage=<jobId>`. GenerationStudio auto-resolves the job to a presigned R2 URL and pre-fills it into the model's image input field.
 
 ## API Routes
 
-| Route | Method | Description |
-|-------|--------|-------------|
-| `/api/jobs` | GET | List user's jobs with pagination |
-| `/api/jobs/[jobId]` | GET | Get job details |
-| `/api/jobs/[jobId]` | DELETE | Delete a job |
-| `/api/generate` | POST | Submit new generation job |
-| `/api/assets` | GET | Get presigned URL for asset |
-| `/api/settings` | GET | Get user credentials (masked) |
-| `/api/settings` | POST | Save/update credentials |
-| `/api/webhooks/fal` | POST | Fal.ai webhook handler |
-| `/api/health` | GET | Health check endpoint |
+| Route | Method | Auth | Description |
+|-------|--------|------|-------------|
+| `/api/jobs` | GET | ✓ | List jobs — supports `cursor`, `limit`, `type`, `status`, `search`, `model` |
+| `/api/jobs/[jobId]` | GET | ✓ | Job details (polls Fal.ai status on localhost) |
+| `/api/jobs/[jobId]` | PATCH | ✓ | Cancel job (`{ action: "cancel" }`) |
+| `/api/jobs/[jobId]` | DELETE | ✓ | Delete job |
+| `/api/generate` | POST | ✓ | Submit generation job |
+| `/api/assets` | GET | ✓ | Presigned R2 URL for a job's asset |
+| `/api/assets/upload` | POST | ✓ | Upload file to R2, returns presigned URL |
+| `/api/settings` | GET | ✓ | Get credentials (masked) |
+| `/api/settings` | POST | ✓ | Save/update credentials |
+| `/api/webhooks/fal` | POST | — | Fal.ai webhook (HMAC-SHA256 validated) |
+| `/api/health` | GET | — | Server + DB health check |
 
 ## Supported Models
 
-### Image Models
-- **Flux 1.1 Pro** - Latest Flux with improved quality
-- **Flux 1.0 Pro/Dev/Schnell** - Various Flux variants
-- **Flux Realism** - Photorealistic generation
-- **Recraft v3** - Style-controlled generation
-- **Ideogram v2** - Excellent text rendering
-- **Stable Diffusion 3.5/3/XL** - SD family models
-- **PixArt Alpha** - Efficient transformer model
-- **AuraFlow** - Open-source flow-based model
+### Text → Image (15+)
+Flux 1.1 Pro · Flux 1.1 Pro Ultra · Flux 1.0 Pro/Dev/Schnell · Flux Realism · Flux Dev LoRA · Hyper SDXL · Recraft v3 · Ideogram v2/Turbo · SD 3.5 Large · SD 3 Medium · SDXL · Fast SDXL · Kolors · PixArt Sigma · AuraFlow · Sana
 
-### Video Models
-- **Kling v2 Standard/Pro** - High-quality video generation
-- **Luma Dream Machine** - Cinematic video
-- **MiniMax Video** - Fast video generation
-- **Stable Video Diffusion** - Image-to-video
-- **Fast AnimateDiff** - Quick animations
-- **Hailuo Video** - Realistic video
+### Image → Image / Edit (7+)
+Flux Kontext · Flux ControlNet · Flux Fill (Inpaint) · IP-Adapter Face ID · SD3 Img2Img · SDXL Img2Img · Flux 2 Pro Edit
 
-### Upscale Models
-- **ESRGAN** - AI-powered upscaling
-- **Real-ESRGAN** - Real-world super-resolution
+### Text → Video (9+)
+Kling v2 Standard/Pro · Luma Ray 2 · Luma Dream Machine · MiniMax Video 01 · Hailuo Video 02 · Wan 2.1 T2V · CogVideoX 5B · AnimateDiff Turbo
 
-## Development
+### Image → Video (7+)
+Kling v2 I2V Standard/Pro · Stable Video Diffusion · Wan 2.1 I2V · LTX Video · Luma I2V · Hailuo I2V
 
-```bash
-# Run development server
-npm run dev
+### Upscale (5)
+AuraSR · Clarity Upscaler · ESRGAN · Real-ESRGAN · CCSR
 
-# Build for production
-npm run build
+### Image Tools / Edit (4)
+Remove Background (Bria) · Face to Sticker · Face Restore (GFPGAN) · Remove BG (rembg)
 
-# Start production server
-npm start
+### Audio / TTS (3)
+Kokoro TTS (English) · PlayHT TTS v3 · F5 TTS (voice cloning)
 
-# Run linter
-npm run lint
-```
+### Music (2)
+Stable Audio · MusicGen
 
 ## Database Schema
 
 ```prisma
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  createdAt DateTime @default(now())
-  
+  id          String        @id @default(uuid())
+  email       String        @unique
+  createdAt   DateTime      @default(now())
   credentials Credentials?
   jobs        Job[]
 }
@@ -167,43 +177,58 @@ model User {
 model Credentials {
   id             String   @id @default(uuid())
   userId         String   @unique
-  falApiKeyEnc   String?
+  falApiKeyEnc   String?  // AES-256-GCM encrypted
   r2AccessKeyEnc String?
   r2SecretKeyEnc String?
   r2Endpoint     String?
   r2BucketName   String?
-  
-  user User @relation(fields: [userId], references: [id])
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(...)
 }
 
 model Job {
-  id           String    @id @default(uuid())
-  userId       String
-  status       JobStatus @default(PENDING)
-  type         AssetType
-  model        String
-  prompt       String
+  id             String    @id @default(uuid())
+  userId         String
+  status         JobStatus @default(PENDING)
+  type           AssetType             // IMAGE | VIDEO
+  model          String                // Fal.ai model endpoint ID
+  prompt         String
   negativePrompt String?
-  seed         Int?
-  params       Json?
-  falRequestId String?
-  r2Key        String?
-  fallbackUrl  String?
-  errorMessage String?
-  parentId     String?
-  createdAt    DateTime  @default(now())
-  completedAt  DateTime?
+  seed           Int?
+  params         Json?                 // extra model-specific params
+  falRequestId   String?
+  r2Key          String?
+  fallbackUrl    String?
+  errorMessage   String?
+  parentId       String?               // for lineage tracking
+  createdAt      DateTime @default(now())
+  completedAt    DateTime?
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([falRequestId])
 }
+
+enum JobStatus { PENDING PROCESSING COMPLETE UPLOAD_FAILED FAL_FAILED CANCELLED }
+enum AssetType { IMAGE VIDEO }
+```
+
+## Development
+
+```bash
+npm run dev       # dev server with Turbopack
+npm run build     # production build (type-checks first)
+npm run lint      # ESLint
+npx prisma studio # database browser at localhost:5555
 ```
 
 ## Security
 
-- All API keys encrypted with AES-256-GCM before storage
-- Webhook signature validation using HMAC-SHA256
-- Input validation with Zod on all API routes
-- Session-based authentication via next-auth
-- Credentials never exposed to client-side
+- API keys encrypted at rest with AES-256-GCM (scrypt key derivation)
+- Webhook signatures validated with HMAC-SHA256 and timing-safe comparison
+- HTTP security headers on all routes (CSP, HSTS, X-Frame-Options, Permissions-Policy)
+- Authentication enforced at routing layer via `src/proxy.ts`
+- Zod validation on all API inputs
 
 ## License
 
-Private - All rights reserved.
+Private — All rights reserved.

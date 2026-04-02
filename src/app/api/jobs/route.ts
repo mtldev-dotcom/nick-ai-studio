@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get("type");
     const model = searchParams.get("model");
     const search = searchParams.get("search");
+    const status = searchParams.get("status");
 
     const where: Record<string, unknown> = {
       userId,
@@ -28,6 +29,10 @@ export async function GET(request: NextRequest) {
 
     if (model) {
       where.model = model;
+    }
+
+    if (status) {
+      where.status = status;
     }
 
     if (search && search.length >= 3) {

@@ -1,38 +1,36 @@
-import { FAL_MODELS, getModelsByType, getModelById, type FalModelConfig } from "./models";
+// Client-safe re-exports from models catalog
+// Do NOT import server-only utilities here
 
-// Re-export from unified model catalog for client-side use
-export { FAL_MODELS, getModelsByType, getModelById, type FalModelConfig };
+import {
+  FAL_MODELS,
+  getModelById,
+  getModelsByGroup,
+  getAssetType,
+  MODEL_TYPE_LABELS,
+  type FalModelConfig,
+  type ModelType,
+  type ModelParam,
+  type ParamType,
+  type SelectOption,
+} from "./models";
 
-// Client-safe model config (no API keys or server-only data)
-export interface FalModelConfigClient {
-  id: string;
-  name: string;
-  type: "IMAGE" | "VIDEO";
-  category: string;
-  description: string;
-  pricing?: string;
+export {
+  FAL_MODELS,
+  getModelById,
+  getModelsByGroup,
+  getAssetType,
+  MODEL_TYPE_LABELS,
+  type FalModelConfig,
+  type ModelType,
+  type ModelParam,
+  type ParamType,
+  type SelectOption,
+};
+
+export function getModelsByTypeClient(modelType: ModelType): FalModelConfig[] {
+  return FAL_MODELS.filter((m) => m.modelType === modelType);
 }
 
-export function getModelsByTypeClient(type: "IMAGE" | "VIDEO"): FalModelConfigClient[] {
-  return getModelsByType(type).map((m) => ({
-    id: m.id,
-    name: m.name,
-    type: m.type,
-    category: m.category,
-    description: m.description,
-    pricing: m.pricing,
-  }));
-}
-
-export function getModelByIdClient(modelId: string): FalModelConfigClient | undefined {
-  const model = getModelById(modelId);
-  if (!model) return undefined;
-  return {
-    id: model.id,
-    name: model.name,
-    type: model.type,
-    category: model.category,
-    description: model.description,
-    pricing: model.pricing,
-  };
+export function getModelByIdClient(id: string): FalModelConfig | undefined {
+  return getModelById(id);
 }

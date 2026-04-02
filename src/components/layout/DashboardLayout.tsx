@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import { BottomNav } from "./BottomNav";
 
 const navItems = [
   { href: "/gallery", label: "Gallery" },
@@ -18,13 +19,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-white/10 bg-[#080808]/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-8">
+          <div className="flex items-center justify-between h-14 md:h-16">
+            {/* Logo */}
+            <div className="flex items-center gap-6 md:gap-8">
               <Link href="/gallery" className="flex items-center gap-2">
                 <span className="text-xl font-bold bg-gradient-to-r from-[#00e5c9] to-[#4a9eff] bg-clip-text text-transparent font-['Rajdhani']">
                   FalStudio
                 </span>
               </Link>
+              {/* Desktop nav */}
               <nav className="hidden md:flex items-center gap-1">
                 {navItems.map((item) => (
                   <Link
@@ -41,11 +44,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 ))}
               </nav>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-[#8898a5]">{session?.user?.email}</span>
+
+            {/* Right side */}
+            <div className="flex items-center gap-2 md:gap-4">
+              {/* Email — hidden on very small screens */}
+              <span className="hidden sm:block text-sm text-[#8898a5] truncate max-w-[160px]">
+                {session?.user?.email}
+              </span>
               <button
                 onClick={() => signOut()}
-                className="px-3 py-1.5 text-sm text-[#8898a5] hover:text-[#b8cfdf] border border-white/10 rounded-md hover:border-white/20 transition-all"
+                className="px-3 py-1.5 text-xs md:text-sm text-[#8898a5] hover:text-[#b8cfdf] border border-white/10 rounded-md hover:border-white/20 transition-all whitespace-nowrap"
               >
                 Sign Out
               </button>
@@ -53,7 +61,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="flex-1 bg-[#080808]">{children}</main>
+
+      {/* Main content — add bottom padding on mobile for the bottom nav */}
+      <main className="flex-1 bg-[#080808] pb-20 md:pb-0">{children}</main>
+
+      {/* Mobile bottom navigation */}
+      <BottomNav />
     </div>
   );
 }

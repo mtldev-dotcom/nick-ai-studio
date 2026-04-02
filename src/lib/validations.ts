@@ -28,9 +28,10 @@ export const settingsSchema = z.object({
 export const jobsListSchema = z.object({
   cursor: z.string().uuid().optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
-  type: z.enum(["IMAGE", "VIDEO"]).optional(),
+  type: z.enum(["IMAGE", "VIDEO", "AUDIO"]).optional(),
   model: z.string().optional(),
   search: z.string().min(3).optional(),
+  status: z.enum(["PENDING", "PROCESSING", "COMPLETE", "UPLOAD_FAILED", "FAL_FAILED", "CANCELLED"]).optional(),
 });
 
 // Webhook validation
